@@ -115,24 +115,57 @@ export default function TimeBlocksView() {
     return days;
   }, [selectedDate]);
 
-  // Position time blocks
-  const positionedTimeBlocks = useMemo(() => {
-    return mockTimeBlocks.map((block) => {
-      const startHour = getHours(block.startTime) + getMinutes(block.startTime) / 60;
-      const endHour = getHours(block.endTime) + getMinutes(block.endTime) / 60;
-      
-      const topPosition = (startHour - 7) * HOUR_HEIGHT;
-      const height = Math.max((endHour - startHour) * HOUR_HEIGHT, 50);
-      
-      return {
-        ...block,
-        topPosition,
-        height,
-        formattedTime: `${format(block.startTime, 'HH:mm')} – ${format(block.endTime, 'HH:mm')}`,
-        duration: Math.round((block.endTime.getTime() - block.startTime.getTime()) / (1000 * 60))
-      };
-    });
-  }, []);
+// Position time blocks with overlap detection
+const positionedTimeBlocks = useMemo(() => {
+  const blocks = mockTimeBlocks.map((block) => {
+    const startHour = getHours(block.startTime) + getMinutes(block.startTime) / 60;
+    const endHour = getHours(block.endTime) + getMinutes(block.endTime) / 60;
+    
+    const topPosition = (startHour - 7) * HOUR_HEIGHT;
+    const height = Math.max((endHour - startHour) * HOUR_HEIGHT, 50);
+    
+    return {
+      ...block,
+      topPosition,
+      height,
+      startHour,
+      endHour,
+      formattedTime: `${format(block.startTime, 'HH:mm')} – ${format(block.endTime, 'HH:mm')}`,
+      duration: Math.round((block.endTime.getTime() - block.startTime.getTime()) / (1000 * 60)),
+      column: 0 // Will be calculated below
+    };
+  });
+
+  // Sort by start time
+  blocks.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
+
+  // Calculate columns for overlapping blocks
+  const columns: Array<{ endTime: number; blocks: typeof blocks }> = [];
+  
+  blocks.forEach(block => {
+    // Find the first column where this block can fit
+    let columnIndex = 0;
+    for (let i = 0; i < columns.length; i++) {
+      if (block.startHour >= columns[i].endTime) {
+        columnIndex = i;
+        break;
+      }
+      columnIndex = i + 1;
+    }
+    
+    // Ensure column exists
+    while (columns.length <= columnIndex) {
+      columns.push({ endTime: 0, blocks: [] });
+    }
+    
+    // Add block to column
+    block.column = columnIndex;
+    columns[columnIndex].endTime = Math.max(columns[columnIndex].endTime, block.endHour);
+    columns[columnIndex].blocks.push(block);
+  });
+
+  return blocks;
+}, []);
 
   const formatDuration = (minutes: number) => {
     if (minutes < 60) return `${minutes} min`;
@@ -242,12 +275,14 @@ export default function TimeBlocksView() {
             {/* Time Blocks */}
             {positionedTimeBlocks.map((block) => {
               const IconComponent = getIconForCategory(block.category);
+              const columnWidth = 200; // Width for each column
+              const textBlockLeft = COLOR_BAR_LEFT + COLOR_BAR_WIDTH + 20 + (block.column * columnWidth);
               
               return (
                 <div key={block.id} className="absolute" style={{ top: block.topPosition }}>
-                  {/* Color Block */}
+                  {/* Color Block - always on the timeline */}
                   <div
-                    className="absolute rounded-lg flex items-start justify-center pt-2"
+                    className="absolute rounded-lg flex items-start justify-center pt-2 z-20"
                     style={{
                       width: COLOR_BAR_WIDTH,
                       height: block.height,
@@ -258,32 +293,32 @@ export default function TimeBlocksView() {
                     <IconComponent className="w-4 h-4 text-white" />
                   </div>
 
-                  {/* Text Block */}
+                  {/* Text Block - positioned in columns to avoid overlap */}
                   <Card
                     className="absolute p-3 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
                     style={{
-                      left: COLOR_BAR_LEFT + COLOR_BAR_WIDTH + 20,
-                      right: 20,
+                      left: textBlockLeft,
+                      width: columnWidth - 10,
                       height: block.height
                     }}
                   >
                     <div className="flex justify-between items-start">
                       <div className="flex-1 pr-6">
                         <h3 
-                          className={`font-medium mb-1 ${
+                          className={`font-medium mb-1 text-sm ${
                             block.completed ? 'line-through text-muted-foreground' : ''
                           }`}
                         >
                           {block.title}
                         </h3>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-xs text-muted-foreground">
                           {block.formattedTime} ({formatDuration(block.duration)})
                         </p>
                       </div>
                       
                       {/* Checkbox */}
                       <button
-                        className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                        className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 ${
                           block.completed 
                             ? 'border-transparent' 
                             : 'border-current'
