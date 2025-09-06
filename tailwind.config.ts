@@ -47,6 +47,19 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        calendar: {
+          workout: "hsl(var(--calendar-workout))",
+          water: "hsl(var(--calendar-water))",
+          food: "hsl(var(--calendar-food))",
+          work: "hsl(var(--calendar-work))",
+          meeting: "hsl(var(--calendar-meeting))",
+          personal: "hsl(var(--calendar-personal))",
+        },
+        timeline: {
+          bg: "hsl(var(--timeline-bg))",
+          current: "hsl(var(--current-time))",
+          free: "hsl(var(--free-time))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",

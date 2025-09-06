@@ -17,8 +17,8 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 45 100% 60%;
+    --primary-foreground: 0 0% 0%;
 
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
@@ -26,8 +26,8 @@ All colors MUST be HSL.
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 45 100% 60%;
+    --accent-foreground: 0 0% 0%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
@@ -37,6 +37,19 @@ All colors MUST be HSL.
     --ring: 222.2 84% 4.9%;
 
     --radius: 0.5rem;
+    
+    /* Calendar colors */
+    --calendar-workout: 292 76% 43%;
+    --calendar-water: 201 96% 32%;
+    --calendar-food: 123 46% 55%;
+    --calendar-work: 45 100% 60%;
+    --calendar-meeting: 354 70% 54%;
+    --calendar-personal: 267 57% 78%;
+    
+    /* Timeline */
+    --timeline-bg: 0 0% 94%;
+    --current-time: 0 84% 60%;
+    --free-time: 210 20% 94%;
 
     --sidebar-background: 0 0% 98%;
 
