@@ -178,23 +178,24 @@ const colorSegments = useMemo(() => {
   let currentSegmentStart = sortedBlocks[0].startHour;
   let currentSegmentEnd = sortedBlocks[0].endHour;
   let currentColor = sortedBlocks[0].color;
-  let currentIcon = getIconForCategory(sortedBlocks[0].category);
+  let currentBlocks = [sortedBlocks[0]];
 
   for (let i = 1; i < sortedBlocks.length; i++) {
     const block = sortedBlocks[i];
     
     // If this block starts before the current segment ends (overlapping or adjacent)
     if (block.startHour <= currentSegmentEnd + 0.1) { // Small tolerance for adjacent blocks
-      // Extend the current segment
+      // Extend the current segment and add block to current blocks
       currentSegmentEnd = Math.max(currentSegmentEnd, block.endHour);
-      // Use the color of the block that starts earliest in this segment
+      currentBlocks.push(block);
     } else {
       // No overlap, finish current segment and start new one
       segments.push({
         startHour: currentSegmentStart,
         endHour: currentSegmentEnd,
         color: currentColor,
-        icon: currentIcon,
+        blocks: currentBlocks,
+        icons: currentBlocks.map(b => getIconForCategory(b.category)),
         topPosition: (currentSegmentStart - 7) * HOUR_HEIGHT,
         height: (currentSegmentEnd - currentSegmentStart) * HOUR_HEIGHT
       });
@@ -202,7 +203,7 @@ const colorSegments = useMemo(() => {
       currentSegmentStart = block.startHour;
       currentSegmentEnd = block.endHour;
       currentColor = block.color;
-      currentIcon = getIconForCategory(block.category);
+      currentBlocks = [block];
     }
   }
   
@@ -211,7 +212,8 @@ const colorSegments = useMemo(() => {
     startHour: currentSegmentStart,
     endHour: currentSegmentEnd,
     color: currentColor,
-    icon: currentIcon,
+    blocks: currentBlocks,
+    icons: currentBlocks.map(b => getIconForCategory(b.category)),
     topPosition: (currentSegmentStart - 7) * HOUR_HEIGHT,
     height: (currentSegmentEnd - currentSegmentStart) * HOUR_HEIGHT
   });
@@ -325,25 +327,23 @@ const colorSegments = useMemo(() => {
             </div>
 
             {/* Continuous Color Segments */}
-            {colorSegments.map((segment, index) => {
-              const IconComponent = segment.icon;
-              
-              return (
-                <div
-                  key={`segment-${index}`}
-                  className="absolute rounded-lg flex items-start justify-center pt-2 z-20"
-                  style={{
-                    width: COLOR_BAR_WIDTH,
-                    height: segment.height,
-                    left: 10,
-                    top: segment.topPosition,
-                    backgroundColor: segment.color
-                  }}
-                >
-                  <IconComponent className="w-4 h-4 text-white" />
-                </div>
-              );
-            })}
+            {colorSegments.map((segment, index) => (
+              <div
+                key={`segment-${index}`}
+                className="absolute rounded-lg flex flex-col items-center justify-start pt-2 gap-1 z-20"
+                style={{
+                  width: COLOR_BAR_WIDTH,
+                  height: segment.height,
+                  left: 10,
+                  top: segment.topPosition,
+                  backgroundColor: segment.color
+                }}
+              >
+                {segment.icons.map((IconComponent, iconIndex) => (
+                  <IconComponent key={iconIndex} className="w-4 h-4 text-white" />
+                ))}
+              </div>
+            ))}
 
             {/* Text Blocks - positioned in columns to avoid overlap */}
             {positionedTimeBlocks.map((block) => {
