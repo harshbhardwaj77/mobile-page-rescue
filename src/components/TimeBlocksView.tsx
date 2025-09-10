@@ -139,7 +139,7 @@ const positionedTimeBlocks = useMemo(() => {
   // Sort by start time
   blocks.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
 
-  // Calculate columns for overlapping blocks
+  // Calculate columns for overlapping blocks (for text positioning only)
   const columns: Array<{ endTime: number; blocks: typeof blocks }> = [];
   
   blocks.forEach(block => {
@@ -166,6 +166,58 @@ const positionedTimeBlocks = useMemo(() => {
 
   return blocks;
 }, []);
+
+// Calculate continuous color segments for the timeline
+const colorSegments = useMemo(() => {
+  if (positionedTimeBlocks.length === 0) return [];
+
+  // Sort blocks by start time
+  const sortedBlocks = [...positionedTimeBlocks].sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
+  const segments = [];
+  
+  let currentSegmentStart = sortedBlocks[0].startHour;
+  let currentSegmentEnd = sortedBlocks[0].endHour;
+  let currentColor = sortedBlocks[0].color;
+  let currentIcon = getIconForCategory(sortedBlocks[0].category);
+
+  for (let i = 1; i < sortedBlocks.length; i++) {
+    const block = sortedBlocks[i];
+    
+    // If this block starts before the current segment ends (overlapping or adjacent)
+    if (block.startHour <= currentSegmentEnd + 0.1) { // Small tolerance for adjacent blocks
+      // Extend the current segment
+      currentSegmentEnd = Math.max(currentSegmentEnd, block.endHour);
+      // Use the color of the block that starts earliest in this segment
+    } else {
+      // No overlap, finish current segment and start new one
+      segments.push({
+        startHour: currentSegmentStart,
+        endHour: currentSegmentEnd,
+        color: currentColor,
+        icon: currentIcon,
+        topPosition: (currentSegmentStart - 7) * HOUR_HEIGHT,
+        height: (currentSegmentEnd - currentSegmentStart) * HOUR_HEIGHT
+      });
+      
+      currentSegmentStart = block.startHour;
+      currentSegmentEnd = block.endHour;
+      currentColor = block.color;
+      currentIcon = getIconForCategory(block.category);
+    }
+  }
+  
+  // Add the last segment
+  segments.push({
+    startHour: currentSegmentStart,
+    endHour: currentSegmentEnd,
+    color: currentColor,
+    icon: currentIcon,
+    topPosition: (currentSegmentStart - 7) * HOUR_HEIGHT,
+    height: (currentSegmentEnd - currentSegmentStart) * HOUR_HEIGHT
+  });
+
+  return segments;
+}, [positionedTimeBlocks]);
 
   const formatDuration = (minutes: number) => {
     if (minutes < 60) return `${minutes} min`;
@@ -272,67 +324,73 @@ const positionedTimeBlocks = useMemo(() => {
               <button className="text-blue-500 mt-1">Create event</button>
             </div>
 
-            {/* Time Blocks */}
+            {/* Continuous Color Segments */}
+            {colorSegments.map((segment, index) => {
+              const IconComponent = segment.icon;
+              
+              return (
+                <div
+                  key={`segment-${index}`}
+                  className="absolute rounded-lg flex items-start justify-center pt-2 z-20"
+                  style={{
+                    width: COLOR_BAR_WIDTH,
+                    height: segment.height,
+                    left: 10,
+                    top: segment.topPosition,
+                    backgroundColor: segment.color
+                  }}
+                >
+                  <IconComponent className="w-4 h-4 text-white" />
+                </div>
+              );
+            })}
+
+            {/* Text Blocks - positioned in columns to avoid overlap */}
             {positionedTimeBlocks.map((block) => {
-              const IconComponent = getIconForCategory(block.category);
               const columnWidth = 200; // Width for each column
               const textBlockLeft = COLOR_BAR_LEFT + COLOR_BAR_WIDTH + 20 + (block.column * columnWidth);
               
               return (
-                <div key={block.id} className="absolute" style={{ top: block.topPosition }}>
-                  {/* Color Block - always on the timeline */}
-                  <div
-                    className="absolute rounded-lg flex items-start justify-center pt-2 z-20"
-                    style={{
-                      width: COLOR_BAR_WIDTH,
-                      height: block.height,
-                      left: 10,
-                      backgroundColor: block.color
-                    }}
-                  >
-                    <IconComponent className="w-4 h-4 text-white" />
-                  </div>
-
-                  {/* Text Block - positioned in columns to avoid overlap */}
-                  <Card
-                    className="absolute p-3 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
-                    style={{
-                      left: textBlockLeft,
-                      width: columnWidth - 10,
-                      height: block.height
-                    }}
-                  >
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1 pr-6">
-                        <h3 
-                          className={`font-medium mb-1 text-sm ${
-                            block.completed ? 'line-through text-muted-foreground' : ''
-                          }`}
-                        >
-                          {block.title}
-                        </h3>
-                        <p className="text-xs text-muted-foreground">
-                          {block.formattedTime} ({formatDuration(block.duration)})
-                        </p>
-                      </div>
-                      
-                      {/* Checkbox */}
-                      <button
-                        className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 ${
-                          block.completed 
-                            ? 'border-transparent' 
-                            : 'border-current'
+                <Card
+                  key={block.id}
+                  className="absolute p-3 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+                  style={{
+                    left: textBlockLeft,
+                    width: columnWidth - 10,
+                    height: block.height,
+                    top: block.topPosition
+                  }}
+                >
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1 pr-6">
+                      <h3 
+                        className={`font-medium mb-1 text-sm ${
+                          block.completed ? 'line-through text-muted-foreground' : ''
                         }`}
-                        style={{
-                          backgroundColor: block.completed ? block.color : 'transparent',
-                          borderColor: block.completed ? 'transparent' : block.color
-                        }}
                       >
-                        {block.completed && <Check className="w-3 h-3 text-white" />}
-                      </button>
+                        {block.title}
+                      </h3>
+                      <p className="text-xs text-muted-foreground">
+                        {block.formattedTime} ({formatDuration(block.duration)})
+                      </p>
                     </div>
-                  </Card>
-                </div>
+                    
+                    {/* Checkbox */}
+                    <button
+                      className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 ${
+                        block.completed 
+                          ? 'border-transparent' 
+                          : 'border-current'
+                      }`}
+                      style={{
+                        backgroundColor: block.completed ? block.color : 'transparent',
+                        borderColor: block.completed ? 'transparent' : block.color
+                      }}
+                    >
+                      {block.completed && <Check className="w-3 h-3 text-white" />}
+                    </button>
+                  </div>
+                </Card>
               );
             })}
           </div>
