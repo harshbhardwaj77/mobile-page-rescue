@@ -330,7 +330,7 @@ const colorSegments = useMemo(() => {
             {colorSegments.map((segment, index) => (
               <div
                 key={`segment-${index}`}
-                className="absolute rounded-lg flex flex-col items-center justify-start pt-2 gap-1 z-20"
+                className="absolute rounded-lg flex flex-col items-center justify-start pt-2 gap-3 z-20"
                 style={{
                   width: COLOR_BAR_WIDTH,
                   height: segment.height,
